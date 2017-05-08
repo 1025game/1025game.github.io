@@ -84,7 +84,7 @@
 	      return _react2.default.createElement(
 	        'div',
 	        { className: 'text-center' },
-	        _react2.default.createElement(Timer, null)
+	        _react2.default.createElement(ScoreSheet, null)
 	      );
 	    }
 	  }]);
@@ -92,28 +92,81 @@
 	  return App;
 	}(_react.Component);
 
-	var Timer = function (_Component2) {
-	  _inherits(Timer, _Component2);
+	var ScoreSheet = function (_Component2) {
+	  _inherits(ScoreSheet, _Component2);
 
-	  function Timer() {
-	    _classCallCheck(this, Timer);
+	  function ScoreSheet() {
+	    _classCallCheck(this, ScoreSheet);
 
-	    return _possibleConstructorReturn(this, (Timer.__proto__ || Object.getPrototypeOf(Timer)).call(this));
+	    var _this2 = _possibleConstructorReturn(this, (ScoreSheet.__proto__ || Object.getPrototypeOf(ScoreSheet)).call(this));
+
+	    var bonus = function bonus(num) {
+	      return num < 30 ? 5 : 10;
+	    };
+	    var boxes = [10, 15, 20, 25, 30, 35].map(function (num) {
+	      return [1, 2, 3, 4, 5, 6].map(function (i) {
+	        return { points: num, bonus: i === 1 || i === 6 ? bonus(num) : 0, marked: false };
+	      });
+	    });
+	    _this2.state = { boxes: boxes };
+	    return _this2;
 	  }
 
-	  _createClass(Timer, [{
+	  _createClass(ScoreSheet, [{
+	    key: 'checkBox',
+	    value: function checkBox(boxes, i, j) {
+	      boxes[i][j].marked = !boxes[i][j].marked;
+	      return boxes;
+	    }
+	  }, {
+	    key: 'score',
+	    value: function score(boxes) {
+	      //points from every checked box + bonus if whole row is checked
+	      return boxes.reduce(function (total, row) {
+	        return total + row.reduce(function (tot, box) {
+	          return tot + (box.marked ? box.points + box.bonus : 0);
+	        }, 0) + (!row.some(function (box) {
+	          return !box.marked;
+	        }) ? row[0].points : 0);
+	      }, 0);
+	    }
+	  }, {
 	    key: 'render',
 	    value: function render() {
+	      var _this3 = this;
 
 	      return _react2.default.createElement(
 	        'div',
 	        null,
-	        'hi'
+	        this.state.boxes.map(function (row, i) {
+	          return _react2.default.createElement(
+	            'div',
+	            { key: i },
+	            row.map(function (box, j) {
+	              //for every 'box' return a checkbox, at end of row add in the row's score tier
+	              return _react2.default.createElement('input', { name: 'attempt', type: 'checkbox', checked: box.marked, key: i * 6 + j,
+	                onChange: function onChange() {
+	                  return _this3.setState({ boxes: _this3.checkBox(_this3.state.boxes, i, j) });
+	                },
+	                style: { width: 15, height: 15, margin: 5 } });
+	            }),
+	            _react2.default.createElement(
+	              'span',
+	              { style: { fontSize: 18 } },
+	              row[0].points
+	            )
+	          );
+	        }),
+	        _react2.default.createElement(
+	          'div',
+	          null,
+	          this.score(this.state.boxes)
+	        )
 	      );
 	    }
 	  }]);
 
-	  return Timer;
+	  return ScoreSheet;
 	}(_react.Component);
 
 	(0, _reactDom.render)(_react2.default.createElement(App, null), document.querySelector('#root'));
