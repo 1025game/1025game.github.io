@@ -138,6 +138,11 @@
 	      return _react2.default.createElement(
 	        'div',
 	        null,
+	        _react2.default.createElement(
+	          'div',
+	          { style: { fontSize: 20 } },
+	          '1025 Putting Practice Game'
+	        ),
 	        this.state.boxes.map(function (row, i) {
 	          return _react2.default.createElement(
 	            'div',
@@ -148,7 +153,7 @@
 	                onChange: function onChange() {
 	                  return _this3.setState({ boxes: _this3.checkBox(_this3.state.boxes, i, j) });
 	                },
-	                style: { width: 15, height: 15, margin: 5 } });
+	                style: { width: 15, height: 15, margin: 6 } });
 	            }),
 	            _react2.default.createElement(
 	              'span',
@@ -159,7 +164,8 @@
 	        }),
 	        _react2.default.createElement(
 	          'div',
-	          null,
+	          { style: { fontSize: 18 } },
+	          'Score: ',
 	          this.score(this.state.boxes)
 	        )
 	      );
