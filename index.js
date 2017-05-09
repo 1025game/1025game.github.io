@@ -63,6 +63,8 @@
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
@@ -115,12 +117,14 @@
 	  _createClass(ScoreSheet, [{
 	    key: 'checkBox',
 	    value: function checkBox(boxes, i, j) {
+	      //array int int -> array
 	      boxes[i][j].marked = !boxes[i][j].marked;
 	      return boxes;
 	    }
 	  }, {
 	    key: 'score',
 	    value: function score(boxes) {
+	      //array -> array
 	      //points from every checked box + bonus if whole row is checked
 	      return boxes.reduce(function (total, row) {
 	        return total + row.reduce(function (tot, box) {
@@ -133,12 +137,33 @@
 	  }, {
 	    key: 'reset',
 	    value: function reset(boxes) {
-	      return confirm("reset game?") ? boxes.map(function (row) {
+	      //array -> array
+	      return confirm("Reset game?") ? boxes.map(function (row) {
 	        return row.map(function (box) {
 	          box.marked = false;
 	          return box;
 	        });
 	      }) : boxes;
+	    }
+	  }, {
+	    key: 'saveHistory',
+	    value: function saveHistory(boxes) {
+	      var history = localStorage.getItem('history');
+	      var currentGame = { date: Date.now(), putts: this.toHistoryFormat(boxes) };
+	      if (history != null) {
+	        localStorage.setItem('history', JSON.stringify({ games: [].concat(_toConsumableArray(JSON.parse(history).games), [currentGame]) }));
+	      } else {
+	        localStorage.setItem('history', JSON.stringify({ games: [currentGame] }));
+	      }
+	    }
+	  }, {
+	    key: 'toHistoryFormat',
+	    value: function toHistoryFormat(boxes) {
+	      return boxes.map(function (row) {
+	        return row.map(function (box) {
+	          return box.marked;
+	        });
+	      });
 	    }
 	  }, {
 	    key: 'render',
@@ -162,7 +187,9 @@
 	              'div',
 	              { key: i },
 	              row.map(function (box, j) {
+
 	                //for every 'box' return a checkbox, at end of row add in the row's score tier
+
 	                return _react2.default.createElement('input', { name: 'attempt', type: 'checkbox', checked: box.marked, key: i * 6 + j,
 	                  onChange: function onChange() {
 	                    return _this3.setState({ boxes: _this3.checkBox(_this3.state.boxes, i, j) });
@@ -172,11 +199,17 @@
 	              _react2.default.createElement(
 	                'span',
 	                { style: { fontSize: 18 } },
-	                row[0].points
+	                row[0].points + "'"
 	              )
 	            );
 	          }),
 	          ' '
+	        ),
+	        _react2.default.createElement(
+	          'div',
+	          { style: { fontSize: 18, margin: 5 } },
+	          'Score: ',
+	          this.score(this.state.boxes)
 	        ),
 	        _react2.default.createElement(
 	          'div',
@@ -186,9 +219,19 @@
 	            { onClick: function onClick() {
 	                return _this3.setState({ boxes: _this3.reset(_this3.state.boxes) });
 	              } },
-	            'reset'
+	            'Reset'
 	          ),
-	          " | Score: " + this.score(this.state.boxes)
+	          " | ",
+	          _react2.default.createElement(
+	            'button',
+	            { onClick: function onClick() {
+	                if (confirm("This will be saved to your history, are you sure?")) {
+	                  _this3.saveHistory(_this3.state.boxes);
+	                  _this3.setState({ boxes: _this3.reset(_this3.state.boxes) });
+	                }
+	              } },
+	            'Save Game'
+	          )
 	        )
 	      );
 	    }

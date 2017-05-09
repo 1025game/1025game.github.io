@@ -22,11 +22,15 @@ class ScoreSheet extends Component {
     }))
     this.state = {boxes}
   }
+
   checkBox(boxes, i, j) {
+    //array int int -> array
     boxes[i][j].marked = !boxes[i][j].marked
     return boxes
   }
+
   score(boxes) {
+    //array -> array
     //points from every checked box + bonus if whole row is checked
     return boxes.reduce((total, row) => {
       return total + row.reduce((tot, box) => {
@@ -36,7 +40,8 @@ class ScoreSheet extends Component {
   }
 
   reset(boxes) {
-    return confirm("reset game?") ? 
+    //array -> array
+    return confirm("Reset game?") ? 
     boxes.map(row => {
         return row.map(box => {
           box.marked = false
@@ -45,24 +50,57 @@ class ScoreSheet extends Component {
       }) : boxes
   }
 
+  saveHistory(boxes) {
+    const history = localStorage.getItem('history')
+    const currentGame = {date: Date.now(), putts: this.toHistoryFormat(boxes)}
+    if (history != null) {
+      localStorage.setItem('history',JSON.stringify({games:[...JSON.parse(history).games, currentGame]}))
+    } else {
+      localStorage.setItem('history',JSON.stringify({games:[currentGame]}))
+    }
+  }
+
+  toHistoryFormat(boxes) {
+    return boxes.map(row => row.map(box => box.marked))
+  }
+
   render() {
     return (
       <div>
+
         <div style={{fontSize: 20}}>1025 Putting Practice Game</div>
 
         <div style={{margin: 8}}> {this.state.boxes.map((row, i) => <div key={i}>{row.map((box, j) => {
+
             //for every 'box' return a checkbox, at end of row add in the row's score tier
+
             return <input name="attempt" type="checkbox" checked={box.marked} key={i * 6 + j}
             onChange={() => this.setState({boxes: this.checkBox(this.state.boxes, i, j)})}
             style={{width: 15, height: 15, margin: 6}}/>
+
           })}
-          <span style={{fontSize: 18}}>{row[0].points}</span></div>
+
+          <span style={{fontSize: 18}}>{row[0].points + "'"}</span></div>
+
         )} </div>
+
         {/*reset button next to score*/}
-        <div style={{fontSize: 18}}>
-          <button onClick={() => this.setState({boxes:this.reset(this.state.boxes)})}>reset</button>
-          {" | Score: " + this.score(this.state.boxes)}
+
+        <div style={{fontSize: 18, margin: 5}}>
+
+          Score: {this.score(this.state.boxes)}
+
         </div>
+        <div style={{fontSize: 18}}>
+          <button onClick={() => this.setState({boxes:this.reset(this.state.boxes)})}>Reset</button>
+          {" | "}
+          <button onClick={() => {
+            if (confirm("This will be saved to your history, are you sure?")) {
+              this.saveHistory(this.state.boxes)
+              this.setState({boxes:this.reset(this.state.boxes)})
+            }}}>Save Game</button>
+        </div>
+
       </div>
     )
   }
