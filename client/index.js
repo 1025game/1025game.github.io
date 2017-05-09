@@ -35,22 +35,34 @@ class ScoreSheet extends Component {
     }, 0)
   }
 
+  reset(boxes) {
+    return confirm("reset game?") ? 
+    boxes.map(row => {
+        return row.map(box => {
+          box.marked = false
+          return box
+        })
+      }) : boxes
+  }
+
   render() {
     return (
       <div>
         <div style={{fontSize: 20}}>1025 Putting Practice Game</div>
 
-        {this.state.boxes.map((row, i) => <div key={i}>{row.map((box, j) => {
+        <div style={{margin: 8}}> {this.state.boxes.map((row, i) => <div key={i}>{row.map((box, j) => {
             //for every 'box' return a checkbox, at end of row add in the row's score tier
             return <input name="attempt" type="checkbox" checked={box.marked} key={i * 6 + j}
             onChange={() => this.setState({boxes: this.checkBox(this.state.boxes, i, j)})}
             style={{width: 15, height: 15, margin: 6}}/>
           })}
-
           <span style={{fontSize: 18}}>{row[0].points}</span></div>
-        )}
-
-        <div style={{fontSize: 18}}>Score: {this.score(this.state.boxes)}</div>
+        )} </div>
+        {/*reset button next to score*/}
+        <div style={{fontSize: 18}}>
+          <button onClick={() => this.setState({boxes:this.reset(this.state.boxes)})}>reset</button>
+          {" | Score: " + this.score(this.state.boxes)}
+        </div>
       </div>
     )
   }

@@ -131,6 +131,16 @@
 	      }, 0);
 	    }
 	  }, {
+	    key: 'reset',
+	    value: function reset(boxes) {
+	      return confirm("reset game?") ? boxes.map(function (row) {
+	        return row.map(function (box) {
+	          box.marked = false;
+	          return box;
+	        });
+	      }) : boxes;
+	    }
+	  }, {
 	    key: 'render',
 	    value: function render() {
 	      var _this3 = this;
@@ -143,30 +153,42 @@
 	          { style: { fontSize: 20 } },
 	          '1025 Putting Practice Game'
 	        ),
-	        this.state.boxes.map(function (row, i) {
-	          return _react2.default.createElement(
-	            'div',
-	            { key: i },
-	            row.map(function (box, j) {
-	              //for every 'box' return a checkbox, at end of row add in the row's score tier
-	              return _react2.default.createElement('input', { name: 'attempt', type: 'checkbox', checked: box.marked, key: i * 6 + j,
-	                onChange: function onChange() {
-	                  return _this3.setState({ boxes: _this3.checkBox(_this3.state.boxes, i, j) });
-	                },
-	                style: { width: 15, height: 15, margin: 6 } });
-	            }),
-	            _react2.default.createElement(
-	              'span',
-	              { style: { fontSize: 18 } },
-	              row[0].points
-	            )
-	          );
-	        }),
+	        _react2.default.createElement(
+	          'div',
+	          { style: { margin: 8 } },
+	          ' ',
+	          this.state.boxes.map(function (row, i) {
+	            return _react2.default.createElement(
+	              'div',
+	              { key: i },
+	              row.map(function (box, j) {
+	                //for every 'box' return a checkbox, at end of row add in the row's score tier
+	                return _react2.default.createElement('input', { name: 'attempt', type: 'checkbox', checked: box.marked, key: i * 6 + j,
+	                  onChange: function onChange() {
+	                    return _this3.setState({ boxes: _this3.checkBox(_this3.state.boxes, i, j) });
+	                  },
+	                  style: { width: 15, height: 15, margin: 6 } });
+	              }),
+	              _react2.default.createElement(
+	                'span',
+	                { style: { fontSize: 18 } },
+	                row[0].points
+	              )
+	            );
+	          }),
+	          ' '
+	        ),
 	        _react2.default.createElement(
 	          'div',
 	          { style: { fontSize: 18 } },
-	          'Score: ',
-	          this.score(this.state.boxes)
+	          _react2.default.createElement(
+	            'button',
+	            { onClick: function onClick() {
+	                return _this3.setState({ boxes: _this3.reset(_this3.state.boxes) });
+	              } },
+	            'reset'
+	          ),
+	          " | Score: " + this.score(this.state.boxes)
 	        )
 	      );
 	    }
