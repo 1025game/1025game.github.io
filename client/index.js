@@ -5,11 +5,11 @@ import {render} from 'react-dom'
 class App extends Component {
   constructor() {
     super()
-    this.state = {mode: 'Go To History'}
+    this.state = {mode: 'Go To Statistics'}
   }
 
   render() {
-    let modes = {history: 'Go To Game', game: 'Go To History'}
+    let modes = {history: 'Go To Game', game: 'Go To Statistics'}
     return (
       <div className='text-center'>
 

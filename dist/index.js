@@ -79,7 +79,7 @@
 
 	    var _this = _possibleConstructorReturn(this, (App.__proto__ || Object.getPrototypeOf(App)).call(this));
 
-	    _this.state = { mode: 'Go To History' };
+	    _this.state = { mode: 'Go To Statistics' };
 	    return _this;
 	  }
 
@@ -88,7 +88,7 @@
 	    value: function render() {
 	      var _this2 = this;
 
-	      var modes = { history: 'Go To Game', game: 'Go To History' };
+	      var modes = { history: 'Go To Game', game: 'Go To Statistics' };
 	      return _react2.default.createElement(
 	        'div',
 	        { className: 'text-center' },
