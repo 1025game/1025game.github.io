@@ -77,16 +77,35 @@
 	  function App() {
 	    _classCallCheck(this, App);
 
-	    return _possibleConstructorReturn(this, (App.__proto__ || Object.getPrototypeOf(App)).apply(this, arguments));
+	    var _this = _possibleConstructorReturn(this, (App.__proto__ || Object.getPrototypeOf(App)).call(this));
+
+	    _this.state = { mode: 'Go To History' };
+	    return _this;
 	  }
 
 	  _createClass(App, [{
 	    key: 'render',
 	    value: function render() {
+	      var _this2 = this;
+
+	      var modes = { history: 'Go To Game', game: 'Go To History' };
 	      return _react2.default.createElement(
 	        'div',
 	        { className: 'text-center' },
-	        _react2.default.createElement(ScoreSheet, null)
+	        _react2.default.createElement(
+	          'button',
+	          { style: { marginTop: '5px' },
+
+	            onClick: function onClick() {
+
+	              _this2.setState({ mode: _this2.state.mode === modes.game ? modes.history : modes.game });
+	            } },
+	          ' ',
+	          this.state.mode,
+	          ' '
+	        ),
+	        _react2.default.createElement(ScoreSheet, { active: this.state.mode === modes.game }),
+	        this.state.mode === modes.history ? _react2.default.createElement(Statistics, null) : null
 	      );
 	    }
 	  }]);
@@ -97,27 +116,31 @@
 	var ScoreSheet = function (_Component2) {
 	  _inherits(ScoreSheet, _Component2);
 
-	  function ScoreSheet() {
+	  function ScoreSheet(props) {
 	    _classCallCheck(this, ScoreSheet);
 
-	    var _this2 = _possibleConstructorReturn(this, (ScoreSheet.__proto__ || Object.getPrototypeOf(ScoreSheet)).call(this));
+	    var _this3 = _possibleConstructorReturn(this, (ScoreSheet.__proto__ || Object.getPrototypeOf(ScoreSheet)).call(this, props));
 
 	    var bonus = function bonus(num) {
 	      return num < 30 ? 5 : 10;
 	    };
+
 	    var boxes = [10, 15, 20, 25, 30, 35].map(function (num) {
+
 	      return [1, 2, 3, 4, 5, 6].map(function (i) {
+
 	        return { points: num, bonus: i === 1 || i === 6 ? bonus(num) : 0, marked: false };
 	      });
 	    });
-	    _this2.state = { boxes: boxes };
-	    return _this2;
+	    _this3.state = { boxes: boxes };
+	    return _this3;
 	  }
 
 	  _createClass(ScoreSheet, [{
 	    key: 'checkBox',
 	    value: function checkBox(boxes, i, j) {
 	      //array int int -> array
+
 	      boxes[i][j].marked = !boxes[i][j].marked;
 	      return boxes;
 	    }
@@ -126,8 +149,11 @@
 	    value: function score(boxes) {
 	      //array -> array
 	      //points from every checked box + bonus if whole row is checked
+
 	      return boxes.reduce(function (total, row) {
+
 	        return total + row.reduce(function (tot, box) {
+
 	          return tot + (box.marked ? box.points + box.bonus : 0);
 	        }, 0) + (!row.some(function (box) {
 	          return !box.marked;
@@ -138,9 +164,13 @@
 	    key: 'reset',
 	    value: function reset(boxes) {
 	      //array -> array
-	      return confirm("Reset game?") ? boxes.map(function (row) {
+
+	      return confirm('Reset game?') ? boxes.map(function (row) {
+
 	        return row.map(function (box) {
+
 	          box.marked = false;
+
 	          return box;
 	        });
 	      }) : boxes;
@@ -148,8 +178,11 @@
 	  }, {
 	    key: 'saveHistory',
 	    value: function saveHistory(boxes) {
+	      //array -> nothing
+
 	      var history = localStorage.getItem('history');
 	      var currentGame = { date: Date.now(), putts: this.toHistoryFormat(boxes) };
+
 	      if (history != null) {
 	        localStorage.setItem('history', JSON.stringify({ games: [].concat(_toConsumableArray(JSON.parse(history).games), [currentGame]) }));
 	      } else {
@@ -159,6 +192,8 @@
 	  }, {
 	    key: 'toHistoryFormat',
 	    value: function toHistoryFormat(boxes) {
+	      //array -> array
+
 	      return boxes.map(function (row) {
 	        return row.map(function (box) {
 	          return box.marked;
@@ -168,9 +203,9 @@
 	  }, {
 	    key: 'render',
 	    value: function render() {
-	      var _this3 = this;
+	      var _this4 = this;
 
-	      return _react2.default.createElement(
+	      return this.props.active ? _react2.default.createElement(
 	        'div',
 	        null,
 	        _react2.default.createElement(
@@ -190,10 +225,15 @@
 
 	                //for every 'box' return a checkbox, at end of row add in the row's score tier
 
-	                return _react2.default.createElement('input', { name: 'attempt', type: 'checkbox', checked: box.marked, key: i * 6 + j,
+	                return _react2.default.createElement('input', { name: 'attempt', type: 'checkbox',
+
+	                  checked: box.marked, key: i * 6 + j,
+
 	                  onChange: function onChange() {
-	                    return _this3.setState({ boxes: _this3.checkBox(_this3.state.boxes, i, j) });
+
+	                    return _this4.setState({ boxes: _this4.checkBox(_this4.state.boxes, i, j) });
 	                  },
+
 	                  style: { width: 15, height: 15, margin: 6 } });
 	              }),
 	              _react2.default.createElement(
@@ -217,27 +257,79 @@
 	          _react2.default.createElement(
 	            'button',
 	            { onClick: function onClick() {
-	                return _this3.setState({ boxes: _this3.reset(_this3.state.boxes) });
+	                return _this4.setState({ boxes: _this4.reset(_this4.state.boxes) });
 	              } },
 	            'Reset'
 	          ),
-	          " | ",
+	          ' | ',
 	          _react2.default.createElement(
 	            'button',
 	            { onClick: function onClick() {
-	                if (confirm("This will be saved to your history, are you sure?")) {
-	                  _this3.saveHistory(_this3.state.boxes);
-	                  _this3.setState({ boxes: _this3.reset(_this3.state.boxes) });
+
+	                if (confirm('This will be saved to your history, are you sure?')) {
+	                  _this4.saveHistory(_this4.state.boxes);
+	                  _this4.setState({ boxes: _this4.reset(_this4.state.boxes) });
 	                }
 	              } },
 	            'Save Game'
 	          )
 	        )
-	      );
+	      ) : null;
 	    }
 	  }]);
 
 	  return ScoreSheet;
+	}(_react.Component);
+
+	var Statistics = function (_Component3) {
+	  _inherits(Statistics, _Component3);
+
+	  function Statistics() {
+	    _classCallCheck(this, Statistics);
+
+	    var _this5 = _possibleConstructorReturn(this, (Statistics.__proto__ || Object.getPrototypeOf(Statistics)).call(this));
+
+	    var history = JSON.parse(localStorage.getItem('history'));
+	    _this5.state = { games: history };
+	    return _this5;
+	  }
+
+	  _createClass(Statistics, [{
+	    key: 'loadHistory',
+	    value: function loadHistory() {
+	      var history = JSON.parse(localStorage.getItem('history')) || [];
+	      this.setState({ games: history.games });
+	    }
+	  }, {
+	    key: 'getPercentage',
+	    value: function getPercentage(history) {
+	      var TOTAL_PUTTS = 36;
+	      var numGames = history.length;
+	      return history.reduce(function (total, game) {
+	        return total + [].concat.apply([], game.putts).reduce(function (round_total, putt) {
+	          return round_total + (putt ? 1 : 0);
+	        }, 0);
+	      }, 0) / TOTAL_PUTTS / numGames * 100;
+	    }
+	  }, {
+	    key: 'componentWillMount',
+	    value: function componentWillMount() {
+	      this.loadHistory();
+	    }
+	  }, {
+	    key: 'render',
+	    value: function render() {
+	      return _react2.default.createElement(
+	        'div',
+	        null,
+	        'Putting Percentage: ',
+	        this.getPercentage(this.state.games).toFixed(2),
+	        '%'
+	      );
+	    }
+	  }]);
+
+	  return Statistics;
 	}(_react.Component);
 
 	(0, _reactDom.render)(_react2.default.createElement(App, null), document.querySelector('#root'));
