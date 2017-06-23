@@ -178,14 +178,20 @@ class Statistics extends Component {
     this.setState({games: history.games})
   }
 
-  getPercentage(history) {
+  getPercentage(history, distRange = {s: 0, e: 6}) {
+    //getting data on only
     const TOTAL_PUTTS = 36
     const numGames = history.length
-    return history.reduce((total, game) => {
-      return total + [].concat.apply([], game.putts).reduce((round_total, putt) => {
+    //history is Array of number of games played
+    //  (Array of number of rows in game
+    //    (Array of number of putts in a row))
+    const puttsMade = history.reduce((total, game) => {
+      return total + [].concat.apply([], game.putts.slice(distRange.s, distRange.e)).reduce((round_total, putt) => {
         return round_total + (putt ? 1 : 0)
       }, 0)
-    }, 0) / TOTAL_PUTTS / numGames * 100
+    }, 0)
+    const percentage = puttsMade / (TOTAL_PUTTS * (distRange.e - distRange.s) / 6) / numGames * 100
+    return percentage
   }
 
   componentWillMount() {
@@ -196,7 +202,9 @@ class Statistics extends Component {
     return (
         <div>
 
-          Putting Percentage: {this.getPercentage(this.state.games).toFixed(2)}%
+          <div>Overall: {this.getPercentage(this.state.games).toFixed(2)}%</div>
+          <div>10-20ft: {this.getPercentage(this.state.games, {s: 0, e: 3}).toFixed(2)}%</div>
+          <div>25-35ft: {this.getPercentage(this.state.games, {s: 3, e: 6}).toFixed(2)}%</div>
 
         </div>
 
