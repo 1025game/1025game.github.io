@@ -290,7 +290,7 @@
 	    var _this5 = _possibleConstructorReturn(this, (Statistics.__proto__ || Object.getPrototypeOf(Statistics)).call(this));
 
 	    var history = JSON.parse(localStorage.getItem('history'));
-	    _this5.state = { games: history };
+	    _this5.state = { games: history.games };
 	    return _this5;
 	  }
 
@@ -302,20 +302,27 @@
 	    }
 	  }, {
 	    key: 'getPercentage',
-	    value: function getPercentage(history) {
+	    value: function getPercentage(games) {
 	      var distRange = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : { s: 0, e: 6 };
+
 
 	      //getting data on only
 	      var TOTAL_PUTTS = 36;
-	      var numGames = history.length;
-	      //history is Array of number of games played
-	      //  (Array of number of rows in game
-	      //    (Array of number of putts in a row))
-	      var puttsMade = history.reduce(function (total, game) {
+	      var numGames = games.length;
+
+	      //games is [num games played ->
+	      // game object ->
+	      //  {date: -> Int,
+	      //   putts: ->
+	      //    [num rows/distances in game ->
+	      //      [num putts per row (bool)]]}]
+
+	      var puttsMade = games.reduce(function (total, game) {
 	        return total + [].concat.apply([], game.putts.slice(distRange.s, distRange.e)).reduce(function (round_total, putt) {
 	          return round_total + (putt ? 1 : 0);
 	        }, 0);
 	      }, 0);
+
 	      var percentage = puttsMade / (TOTAL_PUTTS * (distRange.e - distRange.s) / 6) / numGames * 100;
 	      return percentage;
 	    }
@@ -323,6 +330,193 @@
 	    key: 'componentWillMount',
 	    value: function componentWillMount() {
 	      this.loadHistory();
+	    }
+	  }, {
+	    key: 'componentDidMount',
+	    value: function componentDidMount() {
+	      var pieDataRough = this.compressByDistance(this.state.games).map(function (putts) {
+	        return putts.reduce(function (total, putt) {
+	          return putt ? total + 1 : total;
+	        }, 0);
+	      });
+	      var pieData = pieDataRough.map(function (count, i) {
+	        return { description: 10 + i * 5 + "'", amount: count };
+	      });
+
+	      this.canvas(pieData);
+	    }
+	  }, {
+	    key: 'drawCircSection',
+	    value: function drawCircSection(context, arcStart, arcEnd, color, _ref) {
+	      var x = _ref.x,
+	          y = _ref.y,
+	          r = _ref.r;
+
+	      context.fillStyle = color;
+	      context.beginPath();
+	      context.moveTo(x, y);
+	      context.arc(x, y, r, arcStart, arcEnd);
+	      context.moveTo(x, y);
+	      context.fill();
+	    }
+	  }, {
+	    key: 'getColors',
+	    value: function getColors(size) {
+	      var COLOR_LIB = ['darkblue', 'blue', 'royalblue', 'skyblue', 'green', 'limegreen', 'gold', 'darkorange', 'orangered', 'violet', 'magenta', 'purple', '#4d004d', 'black'];
+	      var COLOR_6 = [0, 3, 4, 6, 7, 8];
+	      var COLOR_LESS_10 = [0, 3, 4, 5, 6, 7, 8, 9, 10];
+	      if (size < 7) {
+	        return COLOR_6.map(function (i) {
+	          return COLOR_LIB[i];
+	        });
+	      } else if (size < 10) {
+	        return COLOR_LESS_10.map(function (i) {
+	          return COLOR_LIB[i];
+	        });
+	      } else {
+	        return COLOR_LIB;
+	      }
+	    }
+	  }, {
+	    key: 'makeSections',
+	    value: function makeSections(putts) {
+
+	      var puttTotal = putts.reduce(function (total, puttCount) {
+	        return total + puttCount;
+	      });
+
+	      var sections = putts.map(function (count) {
+	        return count / puttTotal;
+	      });
+	      return sections;
+	    }
+	  }, {
+	    key: 'drawPieChart',
+	    value: function drawPieChart(context, cWidth, cHeight) {
+	      var _this6 = this;
+
+	      var sections = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : [];
+
+	      //set color key based on number of chart sections
+	      var colors = this.getColors(sections.length);
+
+	      var chartInfo = {
+	        x: cWidth - cHeight + cHeight / 2,
+	        y: cHeight / 2,
+	        r: cHeight / 2,
+	        color: 'black'
+	      };
+
+	      var sectionStart = Math.PI;
+
+	      sections.forEach(function (portion, i) {
+	        var sectionEnd = sectionStart + 2 * Math.PI * portion;
+	        _this6.drawCircSection(context, sectionStart, sectionEnd, colors[i], chartInfo);
+	        sectionStart = sectionEnd;
+	      });
+	    }
+	  }, {
+	    key: 'drawLegend',
+	    value: function drawLegend(context, cWidth, cHeight) {
+	      var distances = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : [];
+	      var sections = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : [];
+
+	      //set color key based on number of chart sections
+	      var colors = this.getColors(sections.length);
+
+	      var startX = (cWidth - cHeight) / 10;
+	      var startY = startX;
+	      var endX = startX + (cWidth - cHeight) * 8 / 10;
+	      var endY = cHeight;
+
+	      var spacing = (endY - startY) / (distances.length + 1);
+
+	      distances.forEach(function (distance, i) {
+
+	        //legend squares
+	        context.fillStyle = colors[i];
+	        var x = startX + spacing / 2;
+	        var y = startY + spacing * (2 * i + 1) / 2;
+	        context.fillRect(x, y, spacing / 2, spacing / 2);
+
+	        //legend text
+	        context.fillStyle = 'black';
+	        context.font = spacing / 2 + 'px Verdana';
+	        context.fillText(distance + ' ' + (sections[i] * 100).toFixed(1) + '%', x + spacing * 2 / 3, y + spacing * 2 / 5);
+	      });
+	    }
+	  }, {
+	    key: 'canvas',
+	    value: function canvas(pieData) {
+	      //there should be one canvas per dataset
+	      var canvas = this.refs.pieChart,
+	          context = canvas.getContext('2d'),
+	          width = canvas.width,
+	          height = canvas.height;
+
+	      // const pieData = [{description: "10'", amount: 6},
+	      //                  {description: "15'", amount: 6}, 
+	      //                  {description: "20'", amount: 5}, 
+	      //                  {description: "25'", amount: 4}, 
+	      //                  {description: "30'", amount: 1}, 
+	      //                  {description: "35'", amount: 3}]
+
+	      this.drawPieChart(context, width, height, this.makeSections(pieData.map(function (set) {
+	        return set.amount;
+	      })));
+	      this.drawLegend(context, width, height, pieData.map(function (set) {
+	        return set.description;
+	      }), this.makeSections(pieData.map(function (set) {
+	        return set.amount;
+	      })));
+	    }
+	  }, {
+	    key: 'filterDates',
+	    value: function filterDates(games) {
+	      var start = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+	      var end = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
+
+	      //start and end round to nearest number
+	      if (start >= end) {
+	        var index = Math.round(games.length * start);
+	        return [games[index]];
+	      } else {
+	        var len = games.length;
+	        Math.ceil(len * start);
+	      }
+	    }
+	  }, {
+	    key: 'compressByDistance',
+	    value: function compressByDistance(games) {
+	      //rounds of all games compressed into array of arrays containing all putts from the cooresponding distance
+	      return games.reduce(function (allPutts, game) {
+	        game.putts.forEach(function (row, i) {
+	          var _allPutts$i;
+
+	          (_allPutts$i = allPutts[i]).push.apply(_allPutts$i, _toConsumableArray(row));
+	        });
+	        return allPutts;
+	      }, [[], [], [], [], [], []]);
+	    }
+	  }, {
+	    key: 'compressByPuttNum',
+	    value: function compressByPuttNum(games) {
+	      //putts of all rounds compressed into array of arrays containing all putts from the cooresponding 
+	      return games.reduce(function (allPutts, game) {
+	        game.putts.forEach(function (row, i) {
+	          var _allPutts$i2;
+
+	          (_allPutts$i2 = allPutts[i]).push.apply(_allPutts$i2, _toConsumableArray(row));
+	        });
+	        return allPutts;
+	      }, [[], [], [], [], [], []]);
+	    }
+	  }, {
+	    key: 'countMadePutts',
+	    value: function countMadePutts(putts) {
+	      return putts.reduce(function (total, putt) {
+	        return putt ? total + 1 : total;
+	      }, 0);
 	    }
 	  }, {
 	    key: 'render',
@@ -350,7 +544,8 @@
 	          '25-35ft: ',
 	          this.getPercentage(this.state.games, { s: 3, e: 6 }).toFixed(2),
 	          '%'
-	        )
+	        ),
+	        _react2.default.createElement('canvas', { ref: 'pieChart', width: 350, height: 200 })
 	      );
 	    }
 	  }]);

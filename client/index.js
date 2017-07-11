@@ -170,7 +170,7 @@ class Statistics extends Component {
   constructor() {
     super()
     let history = JSON.parse(localStorage.getItem('history'))
-    this.state = {games: history}
+    this.state = {games: history.games}
   }
 
   loadHistory() {
@@ -178,24 +178,174 @@ class Statistics extends Component {
     this.setState({games: history.games})
   }
 
-  getPercentage(history, distRange = {s: 0, e: 6}) {
+  getPercentage(games, distRange = {s: 0, e: 6}) {
+
     //getting data on only
     const TOTAL_PUTTS = 36
-    const numGames = history.length
-    //history is Array of number of games played
-    //  (Array of number of rows in game
-    //    (Array of number of putts in a row))
-    const puttsMade = history.reduce((total, game) => {
+    const numGames = games.length
+
+    //games is [num games played ->
+    // game object ->
+    //  {date: -> Int,
+    //   putts: ->
+    //    [num rows/distances in game ->
+    //      [num putts per row (bool)]]}]
+
+    const puttsMade = games.reduce((total, game) => {
       return total + [].concat.apply([], game.putts.slice(distRange.s, distRange.e)).reduce((round_total, putt) => {
         return round_total + (putt ? 1 : 0)
       }, 0)
     }, 0)
+    
     const percentage = puttsMade / (TOTAL_PUTTS * (distRange.e - distRange.s) / 6) / numGames * 100
     return percentage
   }
 
   componentWillMount() {
     this.loadHistory()
+  }
+
+  componentDidMount() {
+    const pieDataRough = this.compressByDistance(this.state.games).map(putts => putts.reduce((total, putt) => putt ? total + 1 : total, 0))
+    const pieData = pieDataRough.map((count, i) => {
+      return {description: 10 + i * 5 + "'", amount: count}
+    })
+
+    this.canvas(pieData)
+  }
+
+  drawCircSection(context, arcStart, arcEnd, color, {x, y, r}) {
+    context.fillStyle = color
+    context.beginPath()
+    context.moveTo(x,y)
+    context.arc(x, y, r, arcStart, arcEnd)
+    context.moveTo(x,y)
+    context.fill()
+  }
+
+  getColors(size) {
+    const COLOR_LIB = ['darkblue', 'blue', 'royalblue', 'skyblue', 'green', 'limegreen', 'gold', 'darkorange', 'orangered', 'violet', 'magenta', 'purple', '#4d004d', 'black']
+    const COLOR_6 = [0, 3, 4, 6, 7, 8]
+    const COLOR_LESS_10 = [0, 3, 4, 5, 6, 7, 8, 9, 10]
+    if (size < 7) {
+      return COLOR_6.map(i => COLOR_LIB[i])
+    } else if (size < 10) {
+      return COLOR_LESS_10.map(i => COLOR_LIB[i])
+    } else {
+      return COLOR_LIB
+    }
+  }
+
+  makeSections(putts) {
+
+    const puttTotal = putts.reduce((total, puttCount) => {
+      return total + puttCount
+    })
+
+    const sections = putts.map(count => count / puttTotal)
+    return sections
+  }
+
+  drawPieChart(context, cWidth, cHeight, sections = []) {
+    //set color key based on number of chart sections
+    const colors = this.getColors(sections.length)
+
+    const chartInfo = {
+      x: cWidth - cHeight + cHeight/2,
+      y: cHeight/2,
+      r: cHeight/2,
+      color: 'black'
+    }
+
+    let sectionStart = Math.PI
+
+    sections.forEach((portion, i) => {
+      const sectionEnd = sectionStart + 2 * Math.PI * portion
+      this.drawCircSection(context, sectionStart, sectionEnd, colors[i], chartInfo)
+      sectionStart = sectionEnd
+    })
+  }
+
+  drawLegend(context, cWidth, cHeight, distances = [], sections = []) {
+    //set color key based on number of chart sections
+    const colors = this.getColors(sections.length)
+
+
+    const startX = (cWidth - cHeight) / 10
+    const startY = startX
+    const endX = startX + (cWidth - cHeight) * 8 / 10
+    const endY = cHeight
+
+    const spacing = (endY - startY) / (distances.length + 1)
+
+    distances.forEach((distance, i) => {
+
+      //legend squares
+      context.fillStyle = colors[i]
+      const x = startX + spacing / 2
+      const y = startY + spacing * (2 * i + 1) / 2
+      context.fillRect(x, y, spacing / 2, spacing / 2)
+
+      //legend text
+      context.fillStyle = 'black'
+      context.font = spacing / 2 + 'px Verdana';
+      context.fillText(distance + ' ' + (sections[i] * 100).toFixed(1) + '%', x + spacing * 2/3, y + spacing * 2/5)
+    })
+
+  }
+
+  canvas(pieData) {
+    //there should be one canvas per dataset
+    const canvas = this.refs.pieChart,
+        context = canvas.getContext('2d'),
+        width = canvas.width,
+        height = canvas.height
+
+    // const pieData = [{description: "10'", amount: 6},
+    //                  {description: "15'", amount: 6}, 
+    //                  {description: "20'", amount: 5}, 
+    //                  {description: "25'", amount: 4}, 
+    //                  {description: "30'", amount: 1}, 
+    //                  {description: "35'", amount: 3}]
+
+    this.drawPieChart(context, width, height, this.makeSections(pieData.map(set => set.amount)))
+    this.drawLegend(context, width, height, pieData.map(set => set.description), this.makeSections(pieData.map(set => set.amount)))
+  }
+
+  filterDates(games, start = 0, end = 1) {
+    //start and end round to nearest number
+    if (start >= end) {
+      const index = Math.round(games.length * start)
+      return [games[index]]
+    } else {
+      let len = games.length
+        Math.ceil(len * start)
+    }
+  }
+
+  compressByDistance(games) {
+    //rounds of all games compressed into array of arrays containing all putts from the cooresponding distance
+    return games.reduce((allPutts, game) => {
+      game.putts.forEach((row, i) => {
+        allPutts[i].push(...row)
+      })
+      return allPutts
+    }, [[],[],[],[],[],[]])
+  }
+
+
+  compressByPuttNum(games) {
+    //putts of all rounds compressed into array of arrays containing all putts from the cooresponding 
+    return games.reduce((allPutts, game) => {
+      game.putts.forEach((row, i) => {
+        allPutts[i].push(...row)
+      })
+      return allPutts
+    }, [[],[],[],[],[],[]])
+  }
+
+  countMadePutts(putts) {
+    return putts.reduce((total, putt) => putt ? total + 1 : total ,0)
   }
 
   render() {
@@ -205,7 +355,7 @@ class Statistics extends Component {
           <div>Overall: {this.getPercentage(this.state.games).toFixed(2)}%</div>
           <div>10-20ft: {this.getPercentage(this.state.games, {s: 0, e: 3}).toFixed(2)}%</div>
           <div>25-35ft: {this.getPercentage(this.state.games, {s: 3, e: 6}).toFixed(2)}%</div>
-
+          <canvas ref="pieChart" width={350} height={200}></canvas>
         </div>
 
     )
