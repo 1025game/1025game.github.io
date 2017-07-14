@@ -1,5 +1,6 @@
 import React, {Component} from 'react'
 import {render} from 'react-dom'
+import Draggable from 'react-draggable'
 
 
 class App extends Component {
@@ -170,7 +171,8 @@ class Statistics extends Component {
   constructor() {
     super()
     let history = JSON.parse(localStorage.getItem('history'))
-    this.state = {games: history.games}
+    this.sliderLength = 200
+    this.state = {games: history.games, sliders: [0, this.sliderLength]}
   }
 
   loadHistory() {
@@ -206,7 +208,11 @@ class Statistics extends Component {
   }
 
   componentDidMount() {
-    const pieDataRough = this.compressByDistance(this.state.games).map(putts => putts.reduce((total, putt) => putt ? total + 1 : total, 0))
+    this.drawChart(this.state.games)
+  }
+
+  drawChart(games) {
+    const pieDataRough = this.compressByDistance(games).map(putts => putts.reduce((total, putt) => putt ? total + 1 : total, 0))
     const pieData = pieDataRough.map((count, i) => {
       return {description: 10 + i * 5 + "'", amount: count}
     })
@@ -307,19 +313,22 @@ class Statistics extends Component {
     //                  {description: "25'", amount: 4}, 
     //                  {description: "30'", amount: 1}, 
     //                  {description: "35'", amount: 3}]
-
+    context.clearRect(0,0,width,height)
     this.drawPieChart(context, width, height, this.makeSections(pieData.map(set => set.amount)))
     this.drawLegend(context, width, height, pieData.map(set => set.description), this.makeSections(pieData.map(set => set.amount)))
   }
 
-  filterDates(games, start = 0, end = 1) {
+  filterGamesByDate(games, start = 0, end = 1) {
     //start and end round to nearest number
-    if (start >= end) {
-      const index = Math.round(games.length * start)
+    const len = games.length,
+          first = Math.ceil(len * start),
+          last = Math.floor(len * end)
+    if (first >= last) {
+      const index = Math.round((games.length - 1) * start)
       return [games[index]]
     } else {
-      let len = games.length
-        Math.ceil(len * start)
+      return games.slice(first, last + 1)
+
     }
   }
 
@@ -348,16 +357,97 @@ class Statistics extends Component {
     return putts.reduce((total, putt) => putt ? total + 1 : total ,0)
   }
 
+  sliderMove() {
+    //on slider movement pie chart will be redrawn
+    const games = this.state.games,
+          sliders = this.state.sliders,
+          len = this.sliderLength
+    const filteredGames = this.filterGamesByDate(games, sliders[0] / len, sliders[1] / len)
+    if (this.refs.pieChart) {
+      this.drawChart(filteredGames)
+    }
+    return [filteredGames[0], filteredGames[filteredGames.length - 1]].map(game => {
+      const date = new Date(game.date)
+      return date.getHours() + ':' + date.getMinutes() + ' ' + (date.getMonth() + 1) + '/' + date.getDate() + '/' + date.getYear()
+    })
+  }
+
   render() {
+    const width = this.sliderLength
     return (
         <div>
-
           <div>Overall: {this.getPercentage(this.state.games).toFixed(2)}%</div>
           <div>10-20ft: {this.getPercentage(this.state.games, {s: 0, e: 3}).toFixed(2)}%</div>
           <div>25-35ft: {this.getPercentage(this.state.games, {s: 3, e: 6}).toFixed(2)}%</div>
-          <canvas ref="pieChart" width={350} height={200}></canvas>
+          <div width={width + 4} style={{display: 'inline-block'}}>
+            {this.sliderMove().map(slider => {
+              return <div style={{float: 'left'}}><div style={{float: 'left', width: width/2 + 'px'}}>&nbsp;</div><div style={{float: 'left', width: width/2 + 'px'}}>
+                       <span style={{float: 'left'}}>{slider}</span>
+                     </div></div>
+            })}
+          </div>
+          <Slider width={width} parent={this}/>
+          <canvas ref='pieChart' width={350} height={200}></canvas>
         </div>
 
+    )
+  }
+}
+
+class Slider extends Component {
+  constructor(props) {
+    super(props)
+
+    this.state = {deltas: [0, 0], top: 0}
+  }
+
+  handleDrag(i) {
+    const self = this
+
+    return (e, ui) => {
+      const x = self.state.deltas[i]
+      let newDeltas = self.state.deltas
+      newDeltas[i] = x + ui.deltaX
+      this.props.parent.setState({sliders: [newDeltas[0], this.props.width + newDeltas[1]]})
+      self.setState({newDeltas, top: i})
+    }
+  }
+
+  box() {
+    return {
+    background: '#fff',
+    border: '1px solid #999',
+    borderRadius: '3px',
+    width: '20px',
+    height: '20px',
+    position: 'absolute'}
+  }
+
+  render() {
+
+    const {deltas, top} = this.state
+    const len = this.props.width
+
+    let leftInput = this.box(),
+        rightInput = this.box()
+    leftInput.left = '0px'
+    leftInput.zIndex = (top === 0 ? 1 : 0)
+    rightInput.left = len + 'px'
+    rightInput.zIndex = (top === 1 ? 1 : 0)
+
+    return (
+      <div>
+        <div style={{display: 'inline-block', height: leftInput.height,  width: len + 20, position: 'relative'}}>
+          <div style={{position: 'absolute', height: '0px', top: '9px', border: '1px solid grey', width: len + 20 + 'px'}}> </div>
+          <Draggable axis='x' bounds={{top: 0, left: 0, right: len + this.state.deltas[1], bottom: 0}} onDrag={this.handleDrag.bind(this, 0)()}>
+            <div className='box' style={leftInput} ></div>
+          </Draggable>
+          <Draggable axis='x' bounds={{top: 0, left: -(len - this.state.deltas[0]), right: 0, bottom: 0}} onDrag={this.handleDrag.bind(this, 1)()}>
+            <div className='box' style={rightInput} ></div>
+          </Draggable>
+        </div>
+
+      </div>
     )
   }
 }
